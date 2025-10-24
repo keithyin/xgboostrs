@@ -1,7 +1,9 @@
 [package]
-name = "xgboost-sys"
+name = "xgboostrs-sys"
 version = "0.2.0"
-authors = ["Dave Challis <dave@suicas.net>"]
+edition = "2015"
+
+authors = ["keithyin <yinpenghhz@hotmail.com>"]
 links = "xgboost"
 build = "build.rs"
 license = "MIT"
@@ -13,5 +15,5 @@ readme = "README.md"
 libc = "0.2"
 
 [build-dependencies]
-bindgen = "0.59"
+bindgen = "0.69.5"
 cmake = "0.1"

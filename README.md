@@ -1,7 +1,10 @@
 # rust-xgboost
 
-[![Travis Build Status](https://travis-ci.com/davechallis/rust-xgboost.svg?branch=master)](https://travis-ci.com/davechallis/rust-xgboost)
-[![Documentation link](https://docs.rs/xgboost/badge.svg)](https://docs.rs/xgboost/badge.svg)
+
+code borrowed from https://github.com/davechallis/rust-xgboost
+
+
+
 
 Rust bindings for the [XGBoost](https://xgboost.ai) gradient boosting library.
 
@@ -10,6 +13,13 @@ Rust bindings for the [XGBoost](https://xgboost.ai) gradient boosting library.
 Basic usage example:
 
 ```rust
+
+/*
+[![Travis Build Status](https://travis-ci.com/davechallis/rust-xgboost.svg?branch=master)](https://travis-ci.com/davechallis/rust-xgboost)
+[![Documentation link](https://docs.rs/xgboost/badge.svg)](https://docs.rs/xgboost/badge.svg)
+*/
+
+
 extern crate xgboost;
 
 use xgboost::{parameters, DMatrix, Booster};
