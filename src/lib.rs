@@ -60,7 +60,7 @@
 extern crate derive_builder;
 #[macro_use]
 extern crate log;
-extern crate xgboost_sys;
+extern crate xgboostrs_sys;
 extern crate libc;
 extern crate tempfile;
 extern crate indexmap;

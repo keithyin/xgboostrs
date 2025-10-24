@@ -8,7 +8,7 @@ use error::XGBError;
 use dmatrix::DMatrix;
 use std::os::unix::ffi::OsStrExt;
 
-use xgboost_sys;
+use xgboostrs_sys;
 use tempfile;
 use indexmap::IndexMap;
 
@@ -55,7 +55,7 @@ impl PredictOption {
 /// [`update`](struct.Booster.html#method.update) or [`update_custom`](struct.Booster.html#method.update_custom)
 /// in a loop.
 pub struct Booster {
-    handle: xgboost_sys::BoosterHandle,
+    handle: xgboostrs_sys::BoosterHandle,
 }
 
 impl Booster {
@@ -75,8 +75,8 @@ impl Booster {
     pub fn new_with_cached_dmats(params: &BoosterParameters, dmats: &[&DMatrix]) -> XGBResult<Self> {
         let mut handle = ptr::null_mut();
         // TODO: check this is safe if any dmats are freed
-        let s: Vec<xgboost_sys::DMatrixHandle> = dmats.iter().map(|x| x.handle).collect();
-        xgb_call!(xgboost_sys::XGBoosterCreate(s.as_ptr(), dmats.len() as u64, &mut handle))?;
+        let s: Vec<xgboostrs_sys::DMatrixHandle> = dmats.iter().map(|x| x.handle).collect();
+        xgb_call!(xgboostrs_sys::XGBoosterCreate(s.as_ptr(), dmats.len() as u64, &mut handle))?;
 
         let mut booster = Booster { handle };
         booster.set_params(params)?;
@@ -87,7 +87,7 @@ impl Booster {
     pub fn save<P: AsRef<Path>>(&self, path: P) -> XGBResult<()> {
         debug!("Writing Booster to: {}", path.as_ref().display());
         let fname = ffi::CString::new(path.as_ref().as_os_str().as_bytes()).unwrap();
-        xgb_call!(xgboost_sys::XGBoosterSaveModel(self.handle, fname.as_ptr()))
+        xgb_call!(xgboostrs_sys::XGBoosterSaveModel(self.handle, fname.as_ptr()))
     }
 
     /// Load a Booster from a binary file at given path.
@@ -101,8 +101,8 @@ impl Booster {
 
         let fname = ffi::CString::new(path.as_ref().as_os_str().as_bytes()).unwrap();
         let mut handle = ptr::null_mut();
-        xgb_call!(xgboost_sys::XGBoosterCreate(ptr::null(), 0, &mut handle))?;
-        xgb_call!(xgboost_sys::XGBoosterLoadModel(handle, fname.as_ptr()))?;
+        xgb_call!(xgboostrs_sys::XGBoosterCreate(ptr::null(), 0, &mut handle))?;
+        xgb_call!(xgboostrs_sys::XGBoosterLoadModel(handle, fname.as_ptr()))?;
         Ok(Booster { handle })
     }
 
@@ -111,8 +111,8 @@ impl Booster {
         debug!("Loading Booster from buffer (length = {})", bytes.len());
 
         let mut handle = ptr::null_mut();
-        xgb_call!(xgboost_sys::XGBoosterCreate(ptr::null(), 0, &mut handle))?;
-        xgb_call!(xgboost_sys::XGBoosterLoadModelFromBuffer(handle, bytes.as_ptr() as *const _, bytes.len() as u64))?;
+        xgb_call!(xgboostrs_sys::XGBoosterCreate(ptr::null(), 0, &mut handle))?;
+        xgb_call!(xgboostrs_sys::XGBoosterLoadModelFromBuffer(handle, bytes.as_ptr() as *const _, bytes.len() as u64))?;
         Ok(Booster { handle })
     }
 
@@ -146,9 +146,9 @@ impl Booster {
         // load distributed code checkpoint from rabit
         let version = bst.load_rabit_checkpoint()?;
         debug!("Loaded Rabit checkpoint: version={}", version);
-        assert!(unsafe { xgboost_sys::RabitGetWorldSize() != 1 || version == 0 });
+        assert!(unsafe { xgboostrs_sys::RabitGetWorldSize() != 1 || version == 0 });
 
-        let _rank = unsafe { xgboost_sys::RabitGetRank() };
+        let _rank = unsafe { xgboostrs_sys::RabitGetRank() };
         let start_iteration = version / 2;
         //let mut nboost = start_iteration;
 
@@ -166,7 +166,7 @@ impl Booster {
                 bst.save_rabit_checkpoint()?;
             }
 
-            assert!(unsafe { xgboost_sys::RabitGetWorldSize() == 1 || version == xgboost_sys::RabitVersionNumber() });
+            assert!(unsafe { xgboostrs_sys::RabitGetWorldSize() == 1 || version == xgboostrs_sys::RabitVersionNumber() });
 
             //nboost += 1;
 
@@ -222,7 +222,7 @@ impl Booster {
     /// * `dtrain` - matrix to train the model with for a single iteration
     /// * `iteration` - current iteration number
     pub fn update(&mut self, dtrain: &DMatrix, iteration: i32) -> XGBResult<()> {
-        xgb_call!(xgboost_sys::XGBoosterUpdateOneIter(self.handle, iteration, dtrain.handle))
+        xgb_call!(xgboostrs_sys::XGBoosterUpdateOneIter(self.handle, iteration, dtrain.handle))
     }
 
     /// Update this model by training it for one round with a custom objective function.
@@ -250,7 +250,7 @@ impl Booster {
         // TODO: _validate_feature_names
         let mut grad_vec = gradient.to_vec();
         let mut hess_vec = hessian.to_vec();
-        xgb_call!(xgboost_sys::XGBoosterBoostOneIter(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterBoostOneIter(self.handle,
                                                      dtrain.handle,
                                                      grad_vec.as_mut_ptr(),
                                                      hess_vec.as_mut_ptr(),
@@ -269,7 +269,7 @@ impl Booster {
         };
         assert_eq!(dmats.len(), names.len());
 
-        let mut s: Vec<xgboost_sys::DMatrixHandle> = dmats.iter().map(|x| x.handle).collect();
+        let mut s: Vec<xgboostrs_sys::DMatrixHandle> = dmats.iter().map(|x| x.handle).collect();
 
         // build separate arrays of C strings and pointers to them to ensure they live long enough
         let mut evnames: Vec<ffi::CString> = Vec::with_capacity(names.len());
@@ -285,7 +285,7 @@ impl Booster {
         evptrs.shrink_to_fit();
 
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterEvalOneIter(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterEvalOneIter(self.handle,
                                                     iteration,
                                                     s.as_mut_ptr(),
                                                     evptrs.as_mut_ptr(),
@@ -318,7 +318,7 @@ impl Booster {
         let key = ffi::CString::new(key).unwrap();
         let mut out_buf = ptr::null();
         let mut success = 0;
-        xgb_call!(xgboost_sys::XGBoosterGetAttr(self.handle, key.as_ptr(), &mut out_buf, &mut success))?;
+        xgb_call!(xgboostrs_sys::XGBoosterGetAttr(self.handle, key.as_ptr(), &mut out_buf, &mut success))?;
         if success == 0 {
             return Ok(None);
         }
@@ -333,14 +333,14 @@ impl Booster {
     pub fn set_attribute(&mut self, key: &str, value: &str) -> XGBResult<()> {
         let key = ffi::CString::new(key).unwrap();
         let value = ffi::CString::new(value).unwrap();
-        xgb_call!(xgboost_sys::XGBoosterSetAttr(self.handle, key.as_ptr(), value.as_ptr()))
+        xgb_call!(xgboostrs_sys::XGBoosterSetAttr(self.handle, key.as_ptr(), value.as_ptr()))
     }
 
     /// Get names of all attributes stored in this model. Values can then be fetched with calls to `get_attribute`.
     pub fn get_attribute_names(&self) -> XGBResult<Vec<String>> {
         let mut out_len = 0;
         let mut out = ptr::null_mut();
-        xgb_call!(xgboost_sys::XGBoosterGetAttrNames(self.handle, &mut out_len, &mut out))?;
+        xgb_call!(xgboostrs_sys::XGBoosterGetAttrNames(self.handle, &mut out_len, &mut out))?;
 
         let out_ptr_slice = unsafe { slice::from_raw_parts(out, out_len as usize) };
         let out_vec = out_ptr_slice.iter()
@@ -357,7 +357,7 @@ impl Booster {
         let ntree_limit = 0;
         let mut out_len = 0;
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterPredict(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterPredict(self.handle,
                                                 dmat.handle,
                                                 option_mask,
                                                 ntree_limit,
@@ -378,7 +378,7 @@ impl Booster {
         let ntree_limit = 0;
         let mut out_len = 0;
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterPredict(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterPredict(self.handle,
                                                 dmat.handle,
                                                 option_mask,
                                                 ntree_limit,
@@ -400,7 +400,7 @@ impl Booster {
         let ntree_limit = 0;
         let mut out_len = 0;
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterPredict(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterPredict(self.handle,
                                                 dmat.handle,
                                                 option_mask,
                                                 ntree_limit,
@@ -427,7 +427,7 @@ impl Booster {
         let ntree_limit = 0;
         let mut out_len = 0;
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterPredict(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterPredict(self.handle,
                                                 dmat.handle,
                                                 option_mask,
                                                 ntree_limit,
@@ -455,7 +455,7 @@ impl Booster {
         let ntree_limit = 0;
         let mut out_len = 0;
         let mut out_result = ptr::null();
-        xgb_call!(xgboost_sys::XGBoosterPredict(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterPredict(self.handle,
                                                 dmat.handle,
                                                 option_mask,
                                                 ntree_limit,
@@ -507,7 +507,7 @@ impl Booster {
         let format = ffi::CString::new("text").unwrap();
         let mut out_len = 0;
         let mut out_dump_array = ptr::null_mut();
-        xgb_call!(xgboost_sys::XGBoosterDumpModelEx(self.handle,
+        xgb_call!(xgboostrs_sys::XGBoosterDumpModelEx(self.handle,
                                                     fmap.as_ptr(),
                                                     with_statistics as i32,
                                                     format.as_ptr(),
@@ -525,18 +525,18 @@ impl Booster {
 
     pub(crate) fn load_rabit_checkpoint(&self) -> XGBResult<i32> {
         let mut version = 0;
-        xgb_call!(xgboost_sys::XGBoosterLoadRabitCheckpoint(self.handle, &mut version))?;
+        xgb_call!(xgboostrs_sys::XGBoosterLoadRabitCheckpoint(self.handle, &mut version))?;
         Ok(version)
     }
 
     pub(crate) fn save_rabit_checkpoint(&self) -> XGBResult<()> {
-        xgb_call!(xgboost_sys::XGBoosterSaveRabitCheckpoint(self.handle))
+        xgb_call!(xgboostrs_sys::XGBoosterSaveRabitCheckpoint(self.handle))
     }
 
     fn set_param(&mut self, name: &str, value: &str) -> XGBResult<()> {
         let name = ffi::CString::new(name).unwrap();
         let value = ffi::CString::new(value).unwrap();
-        xgb_call!(xgboost_sys::XGBoosterSetParam(self.handle, name.as_ptr(), value.as_ptr()))
+        xgb_call!(xgboostrs_sys::XGBoosterSetParam(self.handle, name.as_ptr(), value.as_ptr()))
     }
 
     fn parse_eval_string(eval: &str, evnames: &[&str]) -> IndexMap<String, IndexMap<String, f32>> {
@@ -566,7 +566,7 @@ impl Booster {
 
 impl Drop for Booster {
     fn drop(&mut self) {
-        xgb_call!(xgboost_sys::XGBoosterFree(self.handle)).unwrap();
+        xgb_call!(xgboostrs_sys::XGBoosterFree(self.handle)).unwrap();
     }
 }
 

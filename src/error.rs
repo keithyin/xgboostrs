@@ -5,7 +5,7 @@ use std::ffi::CStr;
 use std::fmt::{self, Display};
 use std::error::Error;
 
-use xgboost_sys;
+use xgboostrs_sys;
 
 /// Convenience return type for most operations which can return an `XGBError`.
 pub type XGBResult<T> = std::result::Result<T, XGBError>;
@@ -37,7 +37,7 @@ impl XGBError {
 
     /// Get the last error message from XGBoost.
     fn from_xgboost() -> Self {
-        let c_str = unsafe { CStr::from_ptr(xgboost_sys::XGBGetLastError()) };
+        let c_str = unsafe { CStr::from_ptr(xgboostrs_sys::XGBGetLastError()) };
         let str_slice = c_str.to_str().unwrap();
         XGBError { desc: str_slice.to_owned() }
     }
