@@ -4,7 +4,10 @@
 code borrowed from https://github.com/davechallis/rust-xgboost
 
 
+```
 
+git clone --recursive-submodules ...
+```
 
 Rust bindings for the [XGBoost](https://xgboost.ai) gradient boosting library.
 
